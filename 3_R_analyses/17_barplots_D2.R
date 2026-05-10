@@ -1,0 +1,87 @@
+rm(list = ls())
+
+setwd("D:/Rwd_claude/darevskia_16S_first")
+
+library(phyloseq)
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(RColorBrewer)
+
+load("phyloseqs/PS_merged_clean_sanger.R")  # loads as PS_merged_sanger
+
+sample_data(PS_merged_sanger)$sample_type <- ifelse(
+  grepl("upper", sample_data(PS_merged_sanger)$sample_type, ignore.case = TRUE),
+  "Upper intestine", "Lower intestine"
+)
+
+# D2: keep only individuals present in BOTH intestine types
+MET_full <- data.frame(as.data.frame(sample_data(PS_merged_sanger)), stringsAsFactors = FALSE)
+paired_ids <- names(table(MET_full$individual_ID)[table(MET_full$individual_ID) == 2])
+PS_D2 <- prune_samples(MET_full$individual_ID %in% paired_ids, PS_merged_sanger)
+PS_D2 <- prune_taxa(taxa_sums(PS_D2) > 0, PS_D2)
+cat(sprintf("D2: %d samples, %d ASVs\n", nsamples(PS_D2), ntaxa(PS_D2)))
+
+dir.create("results/D2_paired/plots/17_barplots", recursive = TRUE, showWarnings = FALSE)
+
+make_phylum_df <- function(ps, top_n = 8) {
+  ps_rel  <- transform_sample_counts(ps, function(x) x / sum(x))
+  ps_phyl <- tax_glom(ps_rel, taxrank = "Phylum")
+  mean_abund <- taxa_sums(ps_phyl) / nsamples(ps_phyl)
+  n_top <- min(top_n, ntaxa(ps_phyl))
+  top_names <- as.vector(tax_table(ps_phyl)[
+    names(sort(mean_abund, decreasing = TRUE))[1:n_top], "Phylum"])
+  df <- psmelt(ps_phyl)
+  df <- df[, c("Sample", "Species", "sample_type", "Life.stage", "Phylum", "Abundance")]
+  colnames(df)[c(1, 6)] <- c("sample", "rel_abund")
+  df$Phylum <- ifelse(df$Phylum %in% top_names, df$Phylum, "Others")
+  df %>% group_by(sample, Species, sample_type, Life.stage, Phylum) %>%
+    summarise(rel_abund = sum(rel_abund), .groups = "drop")
+}
+
+get_phyl_colors <- function(phyla_vec) {
+  phyla_no_other <- phyla_vec[phyla_vec != "Others"]
+  n <- length(phyla_no_other)
+  pal <- if (n <= 12) brewer.pal(max(3, n), "Paired")[1:n]
+         else colorRampPalette(brewer.pal(12, "Paired"))(n)
+  cols <- setNames(pal, phyla_no_other)
+  cols["Others"] <- "#AAAAAA"
+  cols
+}
+
+italic_labeller <- labeller(
+  Species = c("Darevskia dahli"         = "D. dahli",
+              "Darevskia portschinskii" = "D. portschinskii")
+)
+
+df <- make_phylum_df(PS_D2)
+phyla_ordered <- df %>%
+  group_by(Phylum) %>% summarise(total = sum(rel_abund), .groups = "drop") %>%
+  filter(Phylum != "Others") %>% arrange(desc(total)) %>% pull(Phylum)
+df$Phylum <- factor(df$Phylum, levels = c(phyla_ordered, "Others"))
+phyl_colors <- get_phyl_colors(c(phyla_ordered, "Others"))
+
+sample_order <- df %>% select(sample, Species, sample_type) %>% distinct() %>%
+  arrange(Species, sample_type, sample) %>% pull(sample)
+df$sample <- factor(df$sample, levels = sample_order)
+
+p <- ggplot(df, aes(x = sample, y = rel_abund, fill = Phylum)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = phyl_colors) +
+  scale_y_continuous(labels = percent_format(accuracy = 1),
+                     expand = expansion(mult = c(0, 0.02))) +
+  facet_grid(~ Species + sample_type, scales = "free_x", space = "free_x",
+             labeller = italic_labeller) +
+  theme_bw(base_size = 13) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 7),
+        strip.text = element_text(size = 11, face = "bold"),
+        legend.position = "right", legend.title = element_text(face = "bold"),
+        panel.grid.major.x = element_blank(), panel.grid.minor = element_blank()) +
+  labs(x = NULL, y = "Relative abundance", fill = "Phylum",
+       title = sprintf("Phylum-level composition — D2 paired samples (n = %d)", nsamples(PS_D2)))
+
+ggsave("results/D2_paired/plots/17_barplots/barplot_species_sampletype.png",
+       p, width = 14, height = 6, dpi = 300, bg = "white")
+
+cat("Barplot saved to results/D2_paired/plots/17_barplots/\n")
+cat("Phyla shown:", paste(phyla_ordered, collapse = ", "), "+ Others\n")
