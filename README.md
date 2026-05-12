@@ -132,6 +132,16 @@ MaAsLin2 settings (all datasets): normalisation = TSS, transform = LOG, min_prev
 
 ---
 
+## Summary of findings
+
+**Alpha diversity:** Species differences in richness (Observed ASVs, Faith's PD) were significant in the full dataset (D1) and lower intestine (D4), but not in the upper intestine alone (D3) — suggesting the species effect on diversity is driven primarily by the lower intestine. Intestine type and life stage effects on richness were also detected within *D. portschinskii* (D5).
+
+**Beta diversity (microbial composition):** Both species identity and intestine type significantly structured microbial community composition across all distance metrics (Bray-Curtis, Jaccard, Weighted and Unweighted UniFrac; PERMANOVA p = 0.001 in D1 and D2). No significant differences in multivariate dispersion (PERMDISP) were detected.
+
+**Interindividual variance:** *D. portschinskii* appeared more loosely distributed in PCoA ordination space than *D. dahli*, suggesting higher interindividual variability. However, formal tests (betadisper distances modelled with LMM/LM ~ Species) did not reach significance in any dataset (p = 0.11–0.29), likely reflecting limited statistical power given sample sizes of 20–25 individuals per species.
+
+---
+
 ## Reproducibility notes
 
 - Random seeds are set with `set.seed(42)` before all permutation tests.
