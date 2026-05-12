@@ -114,14 +114,19 @@ All scripts load `PS_merged_clean_sanger.R` (the canonical final phyloseq, 49 sa
 | `34_beta_diversity_D5.R` | D5 | Beta diversity; PERMANOVA strata = individual_ID ~ Life.stage × sample_type; PERMDISP |
 | `35_venn_diagram_D5.R` | D5 | Venn diagram: 4 groups (Juvenile/Adult × Upper/Lower) |
 | `36_maaslin2_D5.R` | D5 | Differential abundance; ~ Life.stage + sample_type + (1\|individual_ID); reference: Adult / Lower intestine |
+| `38_intragroup_variance_D1.R` | D1 | Interindividual variance: betadisper (2-group species centroid), LMM distance ~ Species + sample_type + (1\|individual_ID); pairwise within-species Bray-Curtis (descriptive) |
+| `39_intragroup_variance_D2.R` | D2 | As D1 (paired subset) |
+| `40_intragroup_variance_D3.R` | D3 | Interindividual variance: betadisper (2-group species centroid), LM distance ~ Species; pairwise within-species Bray-Curtis (descriptive) |
+| `41_intragroup_variance_D4.R` | D4 | As D3 (lower intestine) |
+| `42_intragroup_variance_D5.R` | D5 | Interindividual variance: betadisper (2-group life-stage centroid), LMM distance ~ Life.stage + sample_type + (1\|individual_ID); pairwise within-life-stage Bray-Curtis (descriptive) |
 
 ### Statistical design summary
 
-| Dataset | Alpha model | Beta permutation | MaAsLin2 random effect |
-|---|---|---|---|
-| D1, D2 | LMM, REML=FALSE | Strata = individual_ID | individual_ID |
-| D3, D4 | LM + Wilcoxon | Free (no strata) | None |
-| D5 | LMM, REML=FALSE | Strata = individual_ID | individual_ID |
+| Dataset | Alpha model | Beta permutation | Intragroup variance model | MaAsLin2 random effect |
+|---|---|---|---|---|
+| D1, D2 | LMM, REML=FALSE | Strata = individual_ID | LMM, REML=FALSE | individual_ID |
+| D3, D4 | LM | Free (no strata) | LM | None |
+| D5 | LMM, REML=FALSE | Strata = individual_ID | LMM, REML=FALSE | individual_ID |
 
 MaAsLin2 settings (all datasets): normalisation = TSS, transform = LOG, min_prevalence = 0.10, min_abundance = 1×10⁻⁴, max_significance = 0.05.
 
